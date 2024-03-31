@@ -31,6 +31,11 @@ def process_pdf(file_path):
     return classGrades
 
 
+@app.route('/', methods=['GET'])
+def index():
+    return 'Hello, World!'
+
+
 @app.route('/upload_file', methods=['POST'])
 def upload_file():
     if 'pdf' not in request.files:
