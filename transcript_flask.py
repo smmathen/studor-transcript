@@ -7,35 +7,40 @@ import os
 app = Flask(__name__)
 CORS(app)
 
+# Function to process the PDF file and extract the class grades
 
-def process_pdf(file_path, first_name='Shawn'):
+
+def process_pdf(file_path, first_name):
     classGrades = {}
     reader = PdfReader(file_path)
-    classGrades = {}
 
     for page in reader.pages:
         content = page.extract_text()
         rows = content.split('\n')
         for i, row in enumerate(rows):
             if i == 0:
+                # First checks if the university is Texas A&M University
                 if row != 'TEXAS A&M UNIVERSITY':
                     print('Invalid transcript: wrong university')
-                    return 'Invalid'
+                    return 'Invalid transcript: wrong university'
             if i == 1:
+                # Then checks if the location is College Station, Texas 77843
                 if row != 'College Station, Texas 77843':
                     print('Invalid transcript: wrong location')
-                    return 'Invalid'
+                    return 'Invalid transcript: wrong location'
             if i == 3:
                 words = row.split()
                 first_name_transcript = words[1]
+                # Checks if name matches what is coming from the account
                 if first_name != first_name_transcript:
                     print('Invalid transcript: wrong first name')
-                    return 'Invalid'
+                    return 'Invalid transcript: wrong first name'
                 uin_split = row.split('(')[1][:9]
                 double_zeros = uin_split[3:5]
                 if double_zeros != '00':
                     print('Invalid transcript: invalid UIN')
-                    return 'Invalid'
+                    return 'Invalid transcript: invalid UIN'
+            # Parses the class grades for any that are an 'A' or 'S'
             if re.match(r'^[A-Z]{4} \d{3}', row):
                 if not re.match(r'.*\d$', row):
                     row += rows[i + 1]
@@ -51,12 +56,15 @@ def process_pdf(file_path, first_name='Shawn'):
     print(classGrades)
     return classGrades
 
+# Test endpoint to check if the server is running
+
 
 @app.route('/api', methods=['GET'])
 def index():
     return 'Hello, World!'
 
 
+# Endpoint that can receive a PDF file and a student's name for tutor verification
 @app.route('/upload_file', methods=['POST'])
 def upload_file():
     print(request.files)
@@ -73,8 +81,8 @@ def upload_file():
     classes = process_pdf('uploaded_file.pdf', first_name)
     os.remove('uploaded_file.pdf')
 
-    if classes == 'Invalid':
-        return jsonify({'error': 'Invalid transcript'}), 400
+    if isinstance(classes, str) and classes[:7] == 'Invalid':
+        return jsonify({'error': 'Invalid transcript', 'message': classes}), 400
 
     return classes, 200
 
